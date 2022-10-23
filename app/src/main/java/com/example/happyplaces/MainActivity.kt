@@ -3,18 +3,24 @@ package com.example.happyplaces
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import com.google.android.material.floatingactionbutton.FloatingActionButton
-
+import com.example.happyplaces.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
+    private var binding: ActivityMainBinding? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-        var fabAddHappyPlace :FloatingActionButton = findViewById(R.id.fabAddHappyPlace)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding?.root)
 
-        fabAddHappyPlace?.setOnClickListener {
+        binding?.fabAddHappyPlace?.setOnClickListener {
             val intent = Intent(this, AddHappyPlaceActivity::class.java)
             startActivity(intent)
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        binding = null
     }
 }
