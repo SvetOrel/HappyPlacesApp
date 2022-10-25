@@ -1,17 +1,29 @@
 package com.example.happyplaces
 
+import android.Manifest
+import android.app.AlertDialog
 import android.app.DatePickerDialog
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.provider.Settings
 import android.view.View
+import android.widget.Toast
 import java.text.SimpleDateFormat
 import com.example.happyplaces.databinding.ActivityAddHappyPlaceBinding
+import com.karumi.dexter.Dexter
+import com.karumi.dexter.MultiplePermissionsReport
+import com.karumi.dexter.PermissionToken
+import com.karumi.dexter.listener.PermissionRequest
+import com.karumi.dexter.listener.multi.MultiplePermissionsListener
 import java.util.*
 
-class AddHappyPlaceActivity : AppCompatActivity() {
+class AddHappyPlaceActivity : AppCompatActivity(),View.OnClickListener {
     private var binding: ActivityAddHappyPlaceBinding? = null
-    //private var cal = Calendar.getInstance()
-    //private lateinit var dateSetListener: DatePickerDialog.OnDateSetListener
+    private var cal = Calendar.getInstance()
+    private lateinit var dateSetListener: DatePickerDialog.OnDateSetListener
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,22 +40,16 @@ class AddHappyPlaceActivity : AppCompatActivity() {
            onBackPressed()
         }
 
-//        dateSetListener = DatePickerDialog.OnDateSetListener { view, year, monthOfYear, dayOfMonth ->
-//                cal.set(Calendar.YEAR, year)
-//                cal.set(Calendar.MONTH, monthOfYear)
-//                cal.set(Calendar.DAY_OF_MONTH, dayOfMonth)
-//
-//                // TODO(Step 9 : Called a function as updateDateInView where after selecting a date from date picker is populated in the UI component.)
-//                // START
-//                updateDateInView()
-//                // END
-//            }
-        // END
+        dateSetListener = DatePickerDialog.OnDateSetListener { view, year, monthOfYear, dayOfMonth ->
+            cal.set(Calendar.YEAR, year)
+            cal.set(Calendar.MONTH, monthOfYear)
+            cal.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+            updateDateInView()
+        }
 
-//        // TODO(Step 6 : We have extended the onClickListener above and the override method as onClick added and here we are setting a listener to date edittext.)
-//        // START
-//        binding?.etDate?.setOnClickListener(this)
-//        // END
+
+        binding?.etDate?.setOnClickListener(this)
+        binding?.tvAddImage?.setOnClickListener(this)
     }
 
     override fun onDestroy() {
@@ -51,38 +57,81 @@ class AddHappyPlaceActivity : AppCompatActivity() {
 
         binding = null
     }
-//
-//    // TODO(Step 5 : This is a override method after extending the onclick listener interface.)
-//    // START
-//    override fun onClick(v: View?) {
-//        when (v!!.id) {
-//            // TODO(Step 7 : Launching the datepicker dialog on click of date edittext.)
-//            // START
-//            R.id.etDate -> {
-//                DatePickerDialog(
-//                    this@AddHappyPlaceActivity,
-//                    dateSetListener, // This is the variable which have created globally and initialized in setupUI method.
-//                    // set DatePickerDialog to point to today's date when it loads up
-//                    cal.get(Calendar.YEAR), // Here the cal instance is created globally and used everywhere in the class where it is required.
-//                    cal.get(Calendar.MONTH),
-//                    cal.get(Calendar.DAY_OF_MONTH)
-//                ).show()
-//            }
-//            // END
-//        }
-//    }
-//    // END
-//
-//    // TODO(Step 8 : Created a function as updateDateInView where after selecting a date from date picker is populated in the UI component.)
-//    // START
-//    /**
-//     * A function to update the selected date in the UI with selected format.
-//     * This function is created because every time we don't need to add format which we have added here to show it in the UI.
-//     */
-//    private fun updateDateInView() {
-//        val myFormat = "dd.MM.yyyy" // mention the format you need
-//        val sdf = SimpleDateFormat(myFormat, Locale.getDefault()) // A date format
-//        binding?.etDate?.setText(sdf.format(cal.time).toString()) // A selected date using format which we have used is set to the UI.
-//    }
-//    // END
+
+    override fun onClick(v: View?) {
+        when (v!!.id) {
+             R.id.etDate -> {
+                DatePickerDialog(
+                    this@AddHappyPlaceActivity,
+                    dateSetListener,
+                    // set DatePickerDialog to point to today's date when it loads up
+                    cal.get(Calendar.YEAR),
+                    cal.get(Calendar.MONTH),
+                    cal.get(Calendar.DAY_OF_MONTH)
+                ).show()
+            }
+            R.id.tvAddImage ->{
+                val pictureDialog = AlertDialog.Builder(this)
+                pictureDialog.setTitle("Select Action")
+
+                val pictureDialogItems = arrayOf("Select photo from Gallery","Capture photo from camera")
+                pictureDialog.setItems(pictureDialogItems){
+                    _, which ->
+                    when(which){
+                        0 -> choosePhotoFromGallery()
+
+                        1 -> Toast.makeText(this@AddHappyPlaceActivity,
+                        "Capture photo from camera",
+                        Toast.LENGTH_LONG).show()
+                    }
+                }
+                pictureDialog.show()
+            }
+        }
+   }
+
+    private fun choosePhotoFromGallery(){
+        Dexter.withActivity(this)
+            .withPermissions(
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            .withListener(object: MultiplePermissionsListener {
+                override fun onPermissionsChecked(
+                    report: MultiplePermissionsReport?)
+                {
+                    if(report!!.areAllPermissionsGranted()){
+                        Toast.makeText(this@AddHappyPlaceActivity,
+                            "Storage READ/WRITE permission are granted.Now you can select an image from Gallery",
+                            Toast.LENGTH_LONG).show()
+                    }
+                }
+                override fun onPermissionRationaleShouldBeShown(permissions: MutableList<PermissionRequest>?, token: PermissionToken?)
+                {
+                    showRationalDialogForPermissions()
+                }
+            }).onSameThread().check()
+    }
+
+    private fun showRationalDialogForPermissions(){
+        AlertDialog.Builder(this).setMessage("It looks like you have turned off permission required for this feature. " +
+                                                    "It can be enabled under the Application Settings.")
+                                                    .setPositiveButton("Go to Settings"){_ , _ ->
+                                                        try{
+                                                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                                                            val uri = Uri.fromParts("package", packageName,null)
+                                                            intent.data = uri
+                                                            startActivity(intent)
+                                                        }catch(e: ActivityNotFoundException){
+                                                            e.printStackTrace()
+                                                        }
+                                                    }.setNegativeButton("Cancel"){dialog,_ -> dialog.dismiss()
+
+        }.show()
+    }
+
+    private fun updateDateInView() {
+        val myFormat = "dd.MM.yyyy"
+        val sdf = SimpleDateFormat(myFormat, Locale.getDefault()) // A date format
+        binding?.etDate?.setText(sdf.format(cal.time).toString()) // A selected date using format which we have used is set to the UI.
+    }
 }
