@@ -42,7 +42,7 @@
                     android:id="@+id/tvTitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/primary_text_color"
+                    android:textColor="@color/colorPrimaryDark"
                     android:textSize="@dimen/item_happy_place_title_textSize"
                     android:textStyle="bold"
                     tools:text="Name"/>
